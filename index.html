@@ -268,6 +268,7 @@
 
   // ---- Config ----
   var CLIENT_ID = '30784254113-6jt1hchkju82uc0s1uimqg3hg0ji29d7.apps.googleusercontent.com';
+  var APP_ID = '30784254113';
   var PICKER_API_KEY = 'AIzaSyD3cgXH5YZaELWGj9WGFNLMNHDdrpSrtUY';
   var SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar.readonly';
   var LIFE_ARROW_ID = null;
@@ -372,6 +373,7 @@
         .addView(view)
         .setOAuthToken(accessToken)
         .setDeveloperKey(PICKER_API_KEY)
+        .setAppId(APP_ID)
         .setCallback(function(data){
           if (data.action === google.picker.Action.PICKED && data.docs && data.docs[0]){
             onPicked(data.docs[0].id, data.docs[0].name);
