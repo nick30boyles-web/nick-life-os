@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nick Life OS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<style>
+  :root{
+    --bg:#F2F2F7;
+    --card:#FFFFFF;
+    --text:#1C1C1E;
+    --text2:#6E6E73;
+    --text3:#AEAEB2;
+    --blue:#007AFF;
+    --green:#34C759;
+    --red:#FF3B30;
+    --orange:#FF9500;
+    --purple:#AF52DE;
+    --border:rgba(60,60,67,0.10);
+    --radius:20px;
+    --shadow:0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .wrap{max-width:900px;margin:0 auto;padding:24px 20px 60px;}
+
+  /* Sign-in gate */
+  #signinGate{
+    position:fixed;inset:0;background:var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    z-index:1000;padding:24px;
+  }
+  .signin-card{
+    background:var(--card);border-radius:28px;box-shadow:var(--shadow);
+    padding:44px 36px;max-width:380px;width:100%;text-align:center;
+  }
+  .signin-icon{
+    width:64px;height:64px;border-radius:18px;margin:0 auto 20px;
+    background:linear-gradient(135deg,var(--blue),#5AC8FA);
+    display:flex;align-items:center;justify-content:center;
+    font-size:28px;color:white;font-weight:600;
+  }
+  .signin-card h1{font-size:22px;margin:0 0 8px;letter-spacing:-0.02em;}
+  .signin-card p{color:var(--text2);font-size:14px;line-height:1.5;margin:0 0 28px;}
+  .btn-google{
+    display:inline-flex;align-items:center;gap:10px;justify-content:center;
+    background:var(--text);color:white;border:none;border-radius:14px;
+    padding:14px 24px;font-size:15px;font-weight:600;cursor:pointer;width:100%;
+    transition:opacity .15s, transform .15s;
+    font-family:inherit;
+  }
+  .btn-google:active{transform:scale(0.97);opacity:0.85;}
+  .signin-error{color:var(--red);font-size:13px;margin-top:14px;display:none;}
+
+  /* Header / hero */
+  header.hero{padding:8px 4px 28px;}
+  .greeting{font-size:30px;font-weight:700;letter-spacing:-0.03em;margin:0 0 4px;}
+  .datestr{font-size:15px;color:var(--text2);margin:0 0 14px;}
+  .northstar{
+    font-size:14px;color:var(--text2);font-style:italic;
+    border-left:3px solid var(--blue);padding-left:12px;line-height:1.5;
+    max-width:520px;
+  }
+  .hero-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;}
+  .refresh-btn{
+    background:var(--card);border:none;border-radius:14px;width:44px;height:44px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    box-shadow:var(--shadow);flex-shrink:0;
+  }
+  .refresh-btn svg{width:20px;height:20px;stroke:var(--blue);transition:transform .5s;}
+  .refresh-btn.spinning svg{animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* Cards / sections */
+  section{margin-bottom:22px;}
+  .section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text2);margin:0 0 10px 4px;}
+  .card{
+    background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:20px;border:1px solid var(--border);
+  }
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:680px){.grid2{grid-template-columns:1fr;}}
+
+  /* Skeleton */
+  .skeleton{background:linear-gradient(90deg,#EDEDF0 25%,#E4E4E8 37%,#EDEDF0 63%);
+    background-size:400% 100%;animation:shimmer 1.4s ease infinite;border-radius:8px;}
+  @keyframes shimmer{0%{background-position:100% 0;}100%{background-position:0 0;}}
+  .sk-line{height:14px;margin-bottom:10px;width:100%;}
+  .sk-line.w60{width:60%;}
+  .sk-line.w40{width:40%;}
+
+  /* Calendar */
+  .cal-group{margin-bottom:14px;}
+  .cal-group:last-child{margin-bottom:0;}
+  .cal-label{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;}
+  .cal-day{margin-bottom:10px;}
+  .cal-day-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;}
+  .cal-event{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid var(--border);}
+  .cal-day .cal-event:first-of-type{border-top:none;}
+  .cal-time{font-size:12px;color:var(--blue);font-weight:600;min-width:56px;flex-shrink:0;}
+  .cal-title{font-size:14px;color:var(--text);}
+  .cal-empty{font-size:13px;color:var(--text3);padding:6px 0;}
+
+  /* Life Arrow */
+  .arrow-purpose{font-size:13px;color:var(--text2);font-style:italic;margin-bottom:16px;line-height:1.5;}
+  .arrow-cat{margin-bottom:16px;}
+  .arrow-cat:last-child{margin-bottom:0;}
+  .arrow-cat-title{
+    display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;
+    letter-spacing:0.04em;padding:3px 10px;border-radius:20px;margin-bottom:8px;color:white;
+  }
+  .cat-Personal .arrow-cat-title{background:var(--blue);}
+  .cat-Family .arrow-cat-title{background:var(--green);}
+  .cat-World .arrow-cat-title{background:var(--purple);}
+  .cat-Other .arrow-cat-title{background:var(--text2);}
+  .arrow-item{padding:6px 0;border-top:1px solid var(--border);}
+  .arrow-cat .arrow-item:first-of-type{border-top:none;}
+  .arrow-sub{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;}
+  .arrow-text{font-size:13px;color:var(--text2);line-height:1.4;}
+
+  /* KPIs */
+  .kpi-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--border);}
+  .kpi-row:first-of-type{border-top:none;}
+  .kpi-label{font-size:14px;font-weight:600;}
+  .kpi-mid{display:flex;align-items:center;gap:10px;}
+  .kpi-amount{font-size:14px;color:var(--text2);}
+  .kpi-pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;color:white;white-space:nowrap;}
+  .pill-good{background:var(--green);}
+  .pill-bad{background:var(--red);}
+  .pill-neutral{background:var(--text3);}
+  .kpi-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+  .trend-wrap{margin-top:18px;}
+  .trend-row{margin-bottom:14px;}
+  .trend-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;}
+  .trend-bars{display:flex;align-items:flex-end;gap:6px;height:52px;}
+  .trend-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .trend-bar{width:100%;border-radius:4px 4px 0 0;background:var(--blue);min-height:3px;}
+  .trend-month{font-size:9px;color:var(--text3);margin-top:4px;}
+
+  /* Tasks */
+  .task-group{margin-bottom:16px;}
+  .task-group:last-child{margin-bottom:0;}
+  .task-group-title{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;padding:3px 9px;border-radius:20px;color:white;}
+  .tag-today{background:var(--red);}
+  .tag-soon{background:var(--orange);}
+  .tag-week{background:var(--blue);}
+  .tag-admin{background:var(--text3);}
+  .task-row{font-size:14px;padding:7px 0;border-top:1px solid var(--border);}
+  .task-group .task-row:first-of-type{border-top:none;}
+  .empty-state{font-size:13px;color:var(--text3);padding:8px 0;}
+  .error-state{font-size:13px;color:var(--red);padding:8px 0;}
+
+  footer{text-align:center;color:var(--text3);font-size:12px;padding:20px 0 0;}
+</style>
+</head>
+<body>
+
+<div id="signinGate">
+  <div class="signin-card">
+    <div class="signin-icon">N</div>
+    <h1>Nick Life OS</h1>
+    <p>Sign in with your Google account to load your Life Arrow, KPIs, tasks, and calendar.</p>
+    <button class="btn-google" id="signinBtn">Sign in with Google</button>
+    <div class="signin-error" id="signinError">Sign-in failed. Try again.</div>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none;">
+  <header class="hero">
+    <div class="hero-row">
+      <div>
+        <div class="greeting" id="greeting">Hello, Nick</div>
+        <div class="datestr" id="datestr"></div>
+        <div class="northstar" id="northstar"></div>
+      </div>
+      <button class="refresh-btn" id="refreshBtn" title="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <section id="sec-calendar">
+    <div class="section-title">Today &amp; Tomorrow</div>
+    <div class="card" id="calendarCard">
+      <div class="skeleton sk-line w40"></div>
+      <div class="skeleton sk-line"></div>
+      <div class="skeleton sk-line w60"></div>
+    </div>
+  </section>
+
+  <div class="grid2">
+    <section id="sec-arrow">
+      <div class="section-title">This Quarter — Life Arrow</div>
+      <div class="card" id="arrowCard">
+        <div class="skeleton sk-line w60"></div>
+        <div class="skeleton sk-line"></div>
+        <div class="skeleton sk-line w40"></div>
+      </div>
+    </section>
+
+    <section id="sec-kpi">
+      <div class="section-title">Business KPIs</div>
+      <div class="card" id="kpiCard">
+        <div class="skeleton sk-line w40"></div>
+        <div class="skeleton sk-line"></div>
+        <div class="skeleton sk-line w60"></div>
+      </div>
+    </section>
+  </div>
+
+  <section id="sec-tasks">
+    <div class="section-title">Near-Term — Big List</div>
+    <div class="card" id="tasksCard">
+      <div class="skeleton sk-line w60"></div>
+      <div class="skeleton sk-line"></div>
+      <div class="skeleton sk-line w40"></div>
+    </div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer onload="onGisLoaded()"></script>
+<script>
+(function(){
+  "use strict";
+
+  // ---- Config ----
+  var CLIENT_ID = '30784254113-6jt1hchkju82uc0s1uimqg3hg0ji29d7.apps.googleusercontent.com';
+  var SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/calendar.readonly';
+  var LIFE_ARROW_ID = '1Rcrzo7jVYDdWn4YqYvZAgPZaWUeVQBUVYiLw905EJuc';
+  var LIFE_ARROW_TAB = 'Q3 2026';
+  var KPI_SHEET_ID = '1tX1uNr3HEOq_qeqp32wxwS7kXStJCEB4DzsmnPcBpmc';
+  var BIG_LIST_ID = '1ZP4y2Tkgd9zfOJWtb9zSS92s2TfrNGk4-wPm9OChmuQ';
+  var BIG_LIST_TAB = 'BIG LIST';
+  var PERSONAL_CAL = 'nick30boyles@gmail.com';
+  var BREEZE_CAL = 'team@breezepaintingsc.com';
+  var TOKEN_KEY = 'nickLifeOsToken_v1';
+
+  var NORTHSTAR_LINES = [
+    "New house in Mount Pleasant. Brick exterior, black shutters, double garage. That's the vision.",
+    "Earn your dopamine. Choose your hard.",
+    "Jesus never avoided the hard thing. Not once. That's the standard.",
+    "What does dad do? Dad makes the call. Dad does the work.",
+    "The reward's always on the other side of the uncomfortable task."
+  ];
+
+  var tokenClient = null;
+  var accessToken = null;
+  var gisReady = false;
+
+  window.onGisLoaded = function(){
+    gisReady = true;
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: function(resp){
+        if (resp.error){
+          document.getElementById('signinError').style.display = 'block';
+          return;
+        }
+        accessToken = resp.access_token;
+        try{
+          localStorage.setItem(TOKEN_KEY, JSON.stringify({
+            token: accessToken,
+            expires: Date.now() + (Number(resp.expires_in || 3000) * 1000)
+          }));
+        }catch(e){}
+        onSignedIn();
+      }
+    });
+    tryStoredToken();
+  };
+
+  function tryStoredToken(){
+    try{
+      var raw = localStorage.getItem(TOKEN_KEY);
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      if (saved && saved.token && saved.expires > Date.now() + 30000){
+        accessToken = saved.token;
+        onSignedIn();
+      }
+    }catch(e){}
+  }
+
+  document.getElementById('signinBtn').addEventListener('click', function(){
+    if (!gisReady){ return; }
+    document.getElementById('signinError').style.display = 'none';
+    tokenClient.requestAccessToken({ prompt: '' });
+  });
+
+  function onSignedIn(){
+    document.getElementById('signinGate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    setGreeting();
+    loadData(false);
+  }
+
+  function onAuthExpired(){
+    accessToken = null;
+    try{ localStorage.removeItem(TOKEN_KEY); }catch(e){}
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('signinGate').style.display = 'flex';
+  }
+
+  // ---- Greeting ----
+  function setGreeting(){
+    var now = new Date();
+    var h = now.getHours();
+    var timeGreeting = h < 12 ? 'Good morning' : (h < 18 ? 'Good afternoon' : 'Good evening');
+    document.getElementById('greeting').textContent = timeGreeting + ', Nick';
+    document.getElementById('datestr').textContent = now.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+    var line = NORTHSTAR_LINES[Math.floor(Math.random() * NORTHSTAR_LINES.length)];
+    document.getElementById('northstar').textContent = line;
+  }
+
+  // ---- Fetch helper ----
+  function gFetch(url){
+    return fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } }).then(function(res){
+      if (!res.ok){
+        if (res.status === 401){
+          onAuthExpired();
+          throw new Error('AUTH_EXPIRED');
+        }
+        throw new Error('Request failed: ' + res.status);
+      }
+      return res.json();
+    });
+  }
+
+  function batchGetUrl(sheetId, ranges){
+    var q = ranges.map(function(r){ return 'ranges=' + encodeURIComponent(r); }).join('&');
+    return 'https://sheets.googleapis.com/v4/spreadsheets/' + sheetId + '/values:batchGet?' + q;
+  }
+
+  // ---- Data fetchers ----
+  function fetchLifeArrow(){
+    var ranges = ["'" + LIFE_ARROW_TAB + "'!A2", "'" + LIFE_ARROW_TAB + "'!B5:G13"];
+    return gFetch(batchGetUrl(LIFE_ARROW_ID, ranges)).then(function(data){
+      var vr = data.valueRanges || [];
+      var purpose = (vr[0] && vr[0].values && vr[0].values[0] && vr[0].values[0][0]) || '';
+      var raw = (vr[1] && vr[1].values) || [];
+      var lastCat = '';
+      var areas = [];
+      raw.forEach(function(row){
+        var category = row[0], sub = row[2], intentions = row[4], goal = row[5];
+        if (category) lastCat = category;
+        var text = (goal && goal.trim()) ? goal : intentions;
+        if (sub && text && text.trim()){
+          areas.push({ category: lastCat || 'Other', sub: sub, text: text.trim() });
+        }
+      });
+      return { purpose: purpose, areas: areas };
+    });
+  }
+
+  function fetchKpis(){
+    return gFetch('https://sheets.googleapis.com/v4/spreadsheets/' + KPI_SHEET_ID + '?fields=sheets.properties.title').then(function(meta){
+      var title = meta.sheets && meta.sheets[0] && meta.sheets[0].properties.title;
+      var q = function(a){ return "'" + title + "'!" + a; };
+      var ranges = [q('B4'), q('E4'), q('A7:G11'), q('A14:G17')];
+      return gFetch(batchGetUrl(KPI_SHEET_ID, ranges)).then(function(data){
+        var vr = data.valueRanges || [];
+        var view = (vr[0] && vr[0].values && vr[0].values[0] && vr[0].values[0][0]) || '';
+        var period = (vr[1] && vr[1].values && vr[1].values[0] && vr[1].values[0][0]) || '';
+        var rows = (vr[2] && vr[2].values) || [];
+        var kpis = rows.map(function(r){
+          return { label: r[0], amount: r[1], pct: r[2], goal: r[6] };
+        }).filter(function(k){ return k.label; });
+        var trend = (vr[3] && vr[3].values) || [];
+        var monthHeader = (trend[0] || []).slice(1);
+        var months = monthHeader.filter(function(m){ return !!m; });
+        var trendRows = trend.slice(1).map(function(r){
+          return { label: r[0], values: r.slice(1, 1 + months.length) };
+        });
+        return { view: view, period: period, kpis: kpis, months: months, trend: trendRows };
+      });
+    });
+  }
+
+  function fetchBigList(){
+    var range = "'" + BIG_LIST_TAB + "'!A2:E1000";
+    var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + BIG_LIST_ID + '/values/' + encodeURIComponent(range);
+    return gFetch(url).then(function(data){
+      var rows = data.values || [];
+      var order = { 'Q3. Due Today': 0, 'Due Soon': 1, 'Q2. Due This Week': 2, 'ADMIN': 3 };
+      return rows
+        .filter(function(r){ return r[0] && order.hasOwnProperty(r[1]) && String(r[2]).toUpperCase() !== 'TRUE'; })
+        .map(function(r){ return { task: r[0], quadrant: r[1] }; })
+        .sort(function(a, b){ return order[a.quadrant] - order[b.quadrant]; });
+    });
+  }
+
+  function fetchCalendarEvents(){
+    var now = new Date();
+    var start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var end = new Date(start.getTime() + 2 * 24 * 60 * 60 * 1000);
+    var cals = [
+      ['personal', PERSONAL_CAL, 'Personal'],
+      ['breeze', BREEZE_CAL, 'Breeze']
+    ];
+    var result = {};
+    var promises = cals.map(function(c){
+      var key = c[0], id = c[1], label = c[2];
+      var url = 'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(id) +
+        '/events?timeMin=' + encodeURIComponent(start.toISOString()) +
+        '&timeMax=' + encodeURIComponent(end.toISOString()) +
+        '&singleEvents=true&orderBy=startTime';
+      return gFetch(url).then(function(data){
+        var events = (data.items || []).map(function(e){
+          return {
+            title: e.summary || '(no title)',
+            start: (e.start && (e.start.dateTime || e.start.date)) || '',
+            allDay: !(e.start && e.start.dateTime)
+          };
+        });
+        result[key] = { label: label, events: events };
+      }).catch(function(err){
+        result[key] = { label: label, error: String(err && err.message || err) };
+      });
+    });
+    return Promise.all(promises).then(function(){ return result; });
+  }
+
+  function getDashboardData(){
+    return Promise.all([
+      fetchLifeArrow().catch(function(e){ return { error: String(e && e.message || e) }; }),
+      fetchKpis().catch(function(e){ return { error: String(e && e.message || e) }; }),
+      fetchBigList().catch(function(e){ return { error: String(e && e.message || e) }; }),
+      fetchCalendarEvents().catch(function(e){ return { error: String(e && e.message || e) }; })
+    ]).then(function(results){
+      return {
+        lifeArrow: results[0],
+        kpis: results[1],
+        tasks: results[2],
+        calendars: results[3],
+        generatedAt: new Date().toISOString()
+      };
+    });
+  }
+
+  // ---- Render helpers ----
+  function escapeHtml(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function fmtTime(iso){
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
+  }
+
+  function isSameDate(a, b){
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  function renderCalendar(data){
+    var el = document.getElementById('calendarCard');
+    var now = new Date();
+    var tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    var groups = ['personal', 'breeze'];
+    var html = '';
+    groups.forEach(function(key){
+      var g = data[key];
+      if (!g) return;
+      html += '<div class="cal-group"><div class="cal-label">' + escapeHtml(g.label) + '</div>';
+      if (g.error){
+        html += '<div class="error-state">Couldn\'t load: ' + escapeHtml(g.error) + '</div>';
+      } else {
+        var todays = [], tomorrows = [];
+        (g.events || []).forEach(function(e){
+          var d = new Date(e.start);
+          if (!isNaN(d.getTime()) && isSameDate(d, tomorrow)) tomorrows.push(e);
+          else todays.push(e);
+        });
+        html += renderCalDay('Today', todays);
+        html += renderCalDay('Tomorrow', tomorrows);
+      }
+      html += '</div>';
+    });
+    el.innerHTML = html || '<div class="empty-state">No calendar data.</div>';
+  }
+
+  function renderCalDay(label, events){
+    var html = '<div class="cal-day"><div class="cal-day-title">' + label + '</div>';
+    if (!events.length){
+      html += '<div class="cal-empty">Nothing scheduled</div>';
+    } else {
+      events.forEach(function(e){
+        var t = e.allDay ? 'All day' : fmtTime(e.start);
+        html += '<div class="cal-event"><div class="cal-time">' + escapeHtml(t) + '</div><div class="cal-title">' + escapeHtml(e.title) + '</div></div>';
+      });
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function renderArrow(data){
+    var el = document.getElementById('arrowCard');
+    if (data.error){
+      el.innerHTML = '<div class="error-state">Couldn\'t load Life Arrow: ' + escapeHtml(data.error) + '</div>';
+      return;
+    }
+    var html = '';
+    if (data.purpose){
+      html += '<div class="arrow-purpose">' + escapeHtml(data.purpose) + '</div>';
+    }
+    var byCat = {};
+    var order = [];
+    (data.areas || []).forEach(function(a){
+      var cat = a.category || 'Other';
+      if (!byCat[cat]){ byCat[cat] = []; order.push(cat); }
+      byCat[cat].push(a);
+    });
+    if (!order.length){
+      html += '<div class="empty-state">No Life Arrow items found for this quarter.</div>';
+    }
+    order.forEach(function(cat){
+      var safeCat = /^(Personal|Family|World)$/.test(cat) ? cat : 'Other';
+      html += '<div class="arrow-cat cat-' + safeCat + '">';
+      html += '<span class="arrow-cat-title">' + escapeHtml(cat) + '</span>';
+      byCat[cat].forEach(function(item){
+        html += '<div class="arrow-item"><div class="arrow-sub">' + escapeHtml(item.sub) + '</div><div class="arrow-text">' + escapeHtml(item.text) + '</div></div>';
+      });
+      html += '</div>';
+    });
+    el.innerHTML = html;
+  }
+
+  function parseNum(v){
+    if (v == null) return NaN;
+    var n = parseFloat(String(v).replace(/[^0-9.\-]/g, ''));
+    return isNaN(n) ? NaN : n;
+  }
+
+  function pillFor(kpi){
+    var actual = parseNum(kpi.pct != null && kpi.pct !== '' ? kpi.pct : kpi.amount);
+    var goal = parseNum(kpi.goal);
+    if (isNaN(actual) || isNaN(goal)){
+      return { cls: 'pill-neutral', text: kpi.goal ? ('Goal ' + kpi.goal) : '—' };
+    }
+    var lowerIsBetter = /marketing/i.test(kpi.label || '');
+    var good = lowerIsBetter ? actual <= goal : actual >= goal;
+    return { cls: good ? 'pill-good' : 'pill-bad', text: 'Goal ' + kpi.goal };
+  }
+
+  function renderKpis(data){
+    var el = document.getElementById('kpiCard');
+    if (data.error){
+      el.innerHTML = '<div class="error-state">Couldn\'t load KPIs: ' + escapeHtml(data.error) + '</div>';
+      return;
+    }
+    var html = '';
+    if (data.view || data.period){
+      html += '<div class="kpi-meta"><span>' + escapeHtml(data.view || '') + '</span><span>' + escapeHtml(data.period || '') + '</span></div>';
+    }
+    (data.kpis || []).forEach(function(k){
+      var pill = pillFor(k);
+      html += '<div class="kpi-row">' +
+        '<div class="kpi-label">' + escapeHtml(k.label) + '</div>' +
+        '<div class="kpi-mid"><span class="kpi-amount">' + escapeHtml(k.amount || '') +
+        (k.pct ? ' (' + escapeHtml(k.pct) + ')' : '') + '</span>' +
+        '<span class="kpi-pill ' + pill.cls + '">' + escapeHtml(pill.text) + '</span></div>' +
+        '</div>';
+    });
+    if (!(data.kpis || []).length){
+      html += '<div class="empty-state">No KPI rows found.</div>';
+    }
+    if ((data.trend || []).length){
+      html += '<div class="trend-wrap">';
+      data.trend.forEach(function(row){
+        var nums = row.values.map(parseNum);
+        var max = Math.max.apply(null, nums.filter(function(n){ return !isNaN(n); }).concat([1]));
+        html += '<div class="trend-row"><div class="trend-label">' + escapeHtml(row.label) + '</div><div class="trend-bars">';
+        row.values.forEach(function(v, i){
+          var n = parseNum(v);
+          var h = isNaN(n) || max <= 0 ? 3 : Math.max(3, Math.round((Math.max(n,0) / max) * 52));
+          html += '<div class="trend-bar-col"><div class="trend-bar" style="height:' + h + 'px"></div>' +
+            '<div class="trend-month">' + escapeHtml((data.months && data.months[i]) || '') + '</div></div>';
+        });
+        html += '</div></div>';
+      });
+      html += '</div>';
+    }
+    el.innerHTML = html;
+  }
+
+  function renderTasks(data){
+    var el = document.getElementById('tasksCard');
+    if (data.error){
+      el.innerHTML = '<div class="error-state">Couldn\'t load Big List: ' + escapeHtml(data.error) + '</div>';
+      return;
+    }
+    var groupsDef = [
+      { key: 'Q3. Due Today', label: 'Due Today', tag: 'tag-today' },
+      { key: 'Due Soon', label: 'Due Soon', tag: 'tag-soon' },
+      { key: 'Q2. Due This Week', label: 'Due This Week', tag: 'tag-week' },
+      { key: 'ADMIN', label: 'Admin', tag: 'tag-admin' }
+    ];
+    var byQ = {};
+    (data || []).forEach(function(t){
+      if (!byQ[t.quadrant]) byQ[t.quadrant] = [];
+      byQ[t.quadrant].push(t);
+    });
+    var html = '';
+    var any = false;
+    groupsDef.forEach(function(g){
+      var items = byQ[g.key];
+      if (!items || !items.length) return;
+      any = true;
+      html += '<div class="task-group"><div class="task-group-title"><span class="tag ' + g.tag + '">' + g.label + '</span></div>';
+      items.forEach(function(t){
+        html += '<div class="task-row">' + escapeHtml(t.task) + '</div>';
+      });
+      html += '</div>';
+    });
+    if (!any){
+      html = '<div class="empty-state">Nothing near-term on the Big List. Nice.</div>';
+    }
+    el.innerHTML = html;
+  }
+
+  // ---- Load orchestration ----
+  var loading = false;
+  function loadData(isRefresh){
+    if (loading) return;
+    loading = true;
+    var btn = document.getElementById('refreshBtn');
+    if (isRefresh) btn.classList.add('spinning');
+    getDashboardData().then(function(data){
+      renderCalendar(data.calendars || {});
+      renderArrow(data.lifeArrow || {});
+      renderKpis(data.kpis || {});
+      renderTasks(data.tasks || []);
+      var updated = new Date(data.generatedAt);
+      document.getElementById('footer').textContent = 'Updated ' + updated.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
+    }).catch(function(err){
+      console.error(err);
+    }).finally(function(){
+      loading = false;
+      btn.classList.remove('spinning');
+    });
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', function(){
+    loadData(true);
+  });
+
+})();
+</script>
+</body>
+</html>
