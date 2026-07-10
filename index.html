@@ -33,7 +33,7 @@
   .wrap{max-width:900px;margin:0 auto;padding:24px 20px 60px;}
 
   /* Sign-in gate */
-  #signinGate{
+  #signinGate, #filesGate{
     position:fixed;inset:0;background:var(--bg);
     display:flex;align-items:center;justify-content:center;
     z-index:1000;padding:24px;
@@ -58,7 +58,13 @@
     font-family:inherit;
   }
   .btn-google:active{transform:scale(0.97);opacity:0.85;}
+  .btn-google:disabled{opacity:0.4;cursor:default;}
+  .btn-google.btn-primary{background:var(--blue);}
   .signin-error{color:var(--red);font-size:13px;margin-top:14px;display:none;}
+  .pick-row{margin-bottom:14px;text-align:left;}
+  .pick-status{font-size:12px;color:var(--text2);margin:6px 2px 0;}
+  .pick-status.done{color:var(--green);font-weight:600;}
+  .change-sheets-link{display:block;text-align:center;font-size:12px;color:var(--text3);margin-top:10px;text-decoration:underline;cursor:pointer;}
 
   /* Header / hero */
   header.hero{padding:8px 4px 28px;}
@@ -174,6 +180,27 @@
   </div>
 </div>
 
+<div id="filesGate" style="display:none;">
+  <div class="signin-card">
+    <div class="signin-icon">&#128194;</div>
+    <h1>One-time setup</h1>
+    <p>Pick your 3 tracking sheets below. This only grants access to the exact files you choose — nothing else in your Drive.</p>
+    <div class="pick-row">
+      <button class="btn-google" id="pickLifeArrowBtn">1. Select Life Arrow sheet</button>
+      <div class="pick-status" id="pickLifeArrowStatus">Not selected</div>
+    </div>
+    <div class="pick-row">
+      <button class="btn-google" id="pickKpiBtn">2. Select Business KPIs sheet</button>
+      <div class="pick-status" id="pickKpiStatus">Not selected</div>
+    </div>
+    <div class="pick-row">
+      <button class="btn-google" id="pickBigListBtn">3. Select Big List sheet</button>
+      <div class="pick-status" id="pickBigListStatus">Not selected</div>
+    </div>
+    <button class="btn-google btn-primary" id="continueBtn" disabled>Continue</button>
+  </div>
+</div>
+
 <div class="wrap" id="app" style="display:none;">
   <header class="hero">
     <div class="hero-row">
@@ -230,8 +257,10 @@
   </section>
 
   <footer id="footer"></footer>
+  <a href="#" class="change-sheets-link" id="changeSheetsLink">Change connected sheets</a>
 </div>
 
+<script src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer onload="onGisLoaded()"></script>
 <script>
 (function(){
@@ -239,15 +268,17 @@
 
   // ---- Config ----
   var CLIENT_ID = '30784254113-6jt1hchkju82uc0s1uimqg3hg0ji29d7.apps.googleusercontent.com';
-  var SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/calendar.readonly';
-  var LIFE_ARROW_ID = '1Rcrzo7jVYDdWn4YqYvZAgPZaWUeVQBUVYiLw905EJuc';
+  var PICKER_API_KEY = 'AIzaSyD3cgXH5YZaELWGj9WGFNLMNHDdrpSrtUY';
+  var SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar.readonly';
+  var LIFE_ARROW_ID = null;
   var LIFE_ARROW_TAB = 'Q3 2026';
-  var KPI_SHEET_ID = '1tX1uNr3HEOq_qeqp32wxwS7kXStJCEB4DzsmnPcBpmc';
-  var BIG_LIST_ID = '1ZP4y2Tkgd9zfOJWtb9zSS92s2TfrNGk4-wPm9OChmuQ';
+  var KPI_SHEET_ID = null;
+  var BIG_LIST_ID = null;
   var BIG_LIST_TAB = 'BIG LIST';
   var PERSONAL_CAL = 'nick30boyles@gmail.com';
   var BREEZE_CAL = 'team@breezepaintingsc.com';
   var TOKEN_KEY = 'nickLifeOsToken_v1';
+  var FILES_KEY = 'nickLifeOsFiles_v1';
 
   var NORTHSTAR_LINES = [
     "New house in Mount Pleasant. Brick exterior, black shutters, double garage. That's the vision.",
@@ -302,17 +333,122 @@
     tokenClient.requestAccessToken({ prompt: '' });
   });
 
-  function onSignedIn(){
+  // ---- File selection (Google Picker, drive.file scope) ----
+  var selectedFiles = { lifeArrow: null, kpi: null, bigList: null };
+  var pickerApiLoaded = false;
+
+  function loadStoredFiles(){
+    try{
+      var raw = localStorage.getItem(FILES_KEY);
+      if (raw){
+        var parsed = JSON.parse(raw);
+        if (parsed && parsed.lifeArrow && parsed.kpi && parsed.bigList) selectedFiles = parsed;
+      }
+    }catch(e){}
+  }
+
+  function saveStoredFiles(){
+    try{ localStorage.setItem(FILES_KEY, JSON.stringify(selectedFiles)); }catch(e){}
+  }
+
+  function filesReady(){
+    return !!(selectedFiles.lifeArrow && selectedFiles.kpi && selectedFiles.bigList);
+  }
+
+  function updateContinueBtn(){
+    document.getElementById('continueBtn').disabled = !filesReady();
+  }
+
+  function loadPickerApi(cb){
+    if (pickerApiLoaded){ cb(); return; }
+    gapi.load('picker', function(){ pickerApiLoaded = true; cb(); });
+  }
+
+  function openPickerForSheet(onPicked){
+    loadPickerApi(function(){
+      var view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
+        .setMode(google.picker.DocsViewMode.LIST);
+      var picker = new google.picker.PickerBuilder()
+        .addView(view)
+        .setOAuthToken(accessToken)
+        .setDeveloperKey(PICKER_API_KEY)
+        .setCallback(function(data){
+          if (data.action === google.picker.Action.PICKED && data.docs && data.docs[0]){
+            onPicked(data.docs[0].id, data.docs[0].name);
+          }
+        })
+        .build();
+      picker.setVisible(true);
+    });
+  }
+
+  function wirePickButton(btnId, statusId, fileKey){
+    document.getElementById(btnId).addEventListener('click', function(){
+      openPickerForSheet(function(id, name){
+        selectedFiles[fileKey] = id;
+        var statusEl = document.getElementById(statusId);
+        statusEl.textContent = 'Selected: ' + name;
+        statusEl.classList.add('done');
+        saveStoredFiles();
+        updateContinueBtn();
+      });
+    });
+  }
+
+  wirePickButton('pickLifeArrowBtn', 'pickLifeArrowStatus', 'lifeArrow');
+  wirePickButton('pickKpiBtn', 'pickKpiStatus', 'kpi');
+  wirePickButton('pickBigListBtn', 'pickBigListStatus', 'bigList');
+
+  document.getElementById('continueBtn').addEventListener('click', function(){
+    if (!filesReady()) return;
+    applySelectedFiles();
+    showApp();
+  });
+
+  document.getElementById('changeSheetsLink').addEventListener('click', function(e){
+    e.preventDefault();
+    selectedFiles = { lifeArrow: null, kpi: null, bigList: null };
+    try{ localStorage.removeItem(FILES_KEY); }catch(err){}
+    ['pickLifeArrowStatus','pickKpiStatus','pickBigListStatus'].forEach(function(id){
+      var el = document.getElementById(id);
+      el.textContent = 'Not selected';
+      el.classList.remove('done');
+    });
+    updateContinueBtn();
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('filesGate').style.display = 'flex';
+  });
+
+  function applySelectedFiles(){
+    LIFE_ARROW_ID = selectedFiles.lifeArrow;
+    KPI_SHEET_ID = selectedFiles.kpi;
+    BIG_LIST_ID = selectedFiles.bigList;
+  }
+
+  function showApp(){
     document.getElementById('signinGate').style.display = 'none';
+    document.getElementById('filesGate').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     setGreeting();
     loadData(false);
+  }
+
+  function onSignedIn(){
+    document.getElementById('signinGate').style.display = 'none';
+    loadStoredFiles();
+    if (filesReady()){
+      applySelectedFiles();
+      showApp();
+    } else {
+      document.getElementById('filesGate').style.display = 'flex';
+    }
   }
 
   function onAuthExpired(){
     accessToken = null;
     try{ localStorage.removeItem(TOKEN_KEY); }catch(e){}
     document.getElementById('app').style.display = 'none';
+    document.getElementById('filesGate').style.display = 'none';
     document.getElementById('signinGate').style.display = 'flex';
   }
 
